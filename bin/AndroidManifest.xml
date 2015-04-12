@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="edu.mit.viral.shen"
+    android:installLocation="auto"
+    android:versionCode="58"
+    android:versionName="1.60" >
+
+    <supports-screens
+        android:anyDensity="true"
+        android:largeScreens="true" />
+
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.VIBRATE" />
+    <uses-sdk
+        android:minSdkVersion="8"
+        android:targetSdkVersion="17" />
+
+    <application
+        android:allowBackup="true"
+        android:icon="@drawable/icon"
+        android:label="@string/app_name"
+        >
+
+        <activity
+            android:name="edu.mit.viral.shen.SplashActivity"
+           
+            android:theme="@android:style/Theme.NoTitleBar" 
+             android:label="@string/title_activity_main">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <activity
+            android:name="edu.mit.viral.shen.MainActivity"
+            android:label="@string/title_activity_main"
+            android:theme="@android:style/Theme.NoTitleBar"  >
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
+        <activity
+            android:name="DroidFish"
+            android:configChanges="orientation|keyboardHidden"
+            android:label="@string/app_name" >
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+
+                <data android:mimeType="application/x-chess-pgn" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+
+                <data android:mimeType="application/x-chess-pgn" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+
+                <data android:mimeType="application/x-chess-fen" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+
+                <data android:mimeType="application/x-chess-fen" />
+            </intent-filter>
+        </activity>
+        <activity
+            android:name="edu.mit.viral.shen.activities.Preferences"     
+            android:label="@string/preferences" >
+        </activity>
+        <activity
+            android:name="edu.mit.viral.shen.activities.EditBoard"        
+            android:configChanges="orientation"
+            android:label="@string/edit_board" >
+        </activity>
+        <activity
+            android:name="edu.mit.viral.shen.activities.EditPGNLoad"       
+            android:configChanges="orientation"
+            android:label="@string/load_game_title" >
+        </activity>
+        <activity
+            android:name="edu.mit.viral.shen.activities.EditPGNSave"
+            android:configChanges="orientation"
+            android:label="@string/save_game_title" >
+        </activity>
+        <activity
+            android:name="edu.mit.viral.shen.activities.LoadScid"
+            android:configChanges="orientation"
+            android:label="@string/load_scid_game_title" >
+        </activity>
+        <activity
+            android:name="edu.mit.viral.shen.activities.LoadFEN"
+            android:configChanges="orientation"
+            android:label="@string/load_fen_title" >
+        </activity>
+        <activity
+            android:name="edu.mit.viral.shen.activities.CPUWarning"
+            android:label="@string/cpu_warning_title" >
+        </activity>
+        <activity
+            android:name="edu.mit.viral.shen.Thumbnails"
+            android:label="@string/title_activity_thumbnails">
+        </activity>
+        <activity
+            android:name="edu.mit.viral.shen.Thumb4"
+            android:label="@string/title_activity_thumb4">
+        </activity>
+<!--          <activity
+            android:name="edu.mit.viral.shen.MsgClient"
+            android:label="@string/title_activity_thumbnails"
+            android:theme="@android:style/Theme.NoTitleBar"
+             >
+        </activity> -->
+        <service android:enabled="true" android:name="edu.mit.viral.shen.TServer"></service>
+        <service android:enabled="true" android:name="edu.mit.viral.shen.UServer"></service>
+
+
+        
+    </application>
+</manifest>
