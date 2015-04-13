@@ -1,0 +1,153 @@
+
+<TableLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    
+    android:paddingBottom="@dimen/activity_vertical_margin"
+    android:paddingLeft="@dimen/activity_horizontal_margin"
+    android:paddingRight="@dimen/activity_horizontal_margin"
+    android:paddingTop="@dimen/activity_vertical_margin"
+    tools:context=".Thumb4" >
+
+       <TableRow
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center" >
+
+        <LinearLayout
+            android:layout_width="fill_parent"
+            android:layout_height="fill_parent" >
+
+            <Button
+                android:id="@+id/ThumbnailButton37"
+                android:layout_width="50dp"
+                android:layout_height="wrap_content"
+                android:layout_margin="5dp"
+                android:padding="5dp"
+                android:text="1" />
+
+            <Button
+                android:id="@+id/ThumbnailButton38"
+                android:layout_width="50dp"
+                android:layout_height="wrap_content"
+                android:layout_margin="5dp"
+                android:padding="5dp"
+                android:text="2" />
+
+            <Button
+                android:id="@+id/ThumbnailButton39"
+                android:layout_width="50dp"
+                android:layout_height="wrap_content"
+                android:layout_margin="5dp"
+                android:padding="5dp"
+                android:text="3" />
+        </LinearLayout>
+    </TableRow>
+
+    <TableRow
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center" >
+
+        <LinearLayout
+            android:layout_width="fill_parent"
+            android:layout_height="fill_parent" >
+
+            <Button
+                android:id="@+id/ThumbnailButton40"
+                android:layout_width="50dp"
+                android:layout_height="wrap_content"
+                android:text="4" 
+                android:layout_margin="5dp"
+                android:padding="5dp"/>
+
+            <Button
+                android:id="@+id/ThumbnailButton41"
+                android:layout_width="50dp"
+                android:layout_height="wrap_content"
+                android:text="5"
+                android:layout_margin="5dp" 
+                android:padding="5dp"/>
+
+            <Button
+                android:id="@+id/ThumbnailButton42"
+                android:layout_width="50dp"
+                android:layout_height="wrap_content"
+                android:text="6" 
+                android:layout_margin="5dp"
+                android:padding="5dp"/>
+        </LinearLayout>
+    </TableRow>
+
+    <TableRow
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center" >
+
+        <LinearLayout
+            android:layout_width="fill_parent"
+            android:layout_height="fill_parent" >
+
+            <Button
+                android:id="@+id/ThumbnailButton43"
+                android:layout_width="50dp"
+                android:layout_height="wrap_content"
+                android:text="7"
+                android:layout_margin="5dp" 
+                android:padding="5dp"/>
+
+            <Button
+                android:id="@+id/ThumbnailButton44"
+                android:layout_width="50dp"
+                android:layout_height="wrap_content"
+                android:text="8" 
+                android:layout_margin="5dp"
+                android:padding="5dp"/>
+
+            <Button
+                android:id="@+id/ThumbnailButton45"
+                android:layout_width="50dp"
+                android:layout_height="wrap_content"
+                android:text="9"
+                android:layout_margin="5dp" 
+                android:padding="5dp"/>
+        </LinearLayout>
+    </TableRow>
+
+    <TableRow
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center" >
+               <LinearLayout
+            android:layout_width="fill_parent"
+            android:layout_height="fill_parent" >
+
+            <Button
+                android:id="@+id/ThumbnailButton46"
+                android:layout_width="50dp"
+                android:layout_height="wrap_content"
+                android:text="10"
+                android:layout_margin="5dp" 
+                android:padding="5dp"/>
+
+            <Button
+                android:id="@+id/ThumbnailButton47"
+                android:layout_width="50dp"
+                android:layout_height="wrap_content"
+                android:text="11" 
+                android:layout_margin="5dp"
+                android:padding="5dp"/>
+
+            <Button
+                android:id="@+id/ThumbnailButton48"
+                android:layout_width="50dp"
+                android:layout_height="wrap_content"
+                android:text="12"
+                android:layout_margin="5dp" 
+                android:padding="5dp"/>
+        </LinearLayout>
+    </TableRow>
+
+</TableLayout>

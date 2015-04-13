@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="fill_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical" >
+
+    <include
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        layout="@layout/title">
+    </include>
+    <view
+        class="edu.mit.viral.shen.ChessBoardPlay"
+        android:id="@+id/chessboard"
+        android:layout_width="fill_parent"
+        android:layout_height="fill_parent"/>
+    <LinearLayout
+        android:orientation="horizontal"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:paddingTop="1dp">
+
+        <ImageButton
+            android:id="@+id/custom3Button"
+            android:contentDescription="@string/buttonDesc_custom3"
+            android:layout_width="3dp"
+            android:layout_height="32dp">
+        </ImageButton>
+        <ImageButton
+            android:id="@+id/custom2Button"
+            android:contentDescription="@string/buttonDesc_custom2"
+            android:layout_width="3dp"
+            android:layout_height="32dp">
+        </ImageButton>
+        <ImageButton
+            android:id="@+id/custom1Button"
+            android:contentDescription="@string/buttonDesc_custom1"
+            android:layout_width="36dp"
+            android:layout_height="32dp">
+        </ImageButton>
+        <ImageButton
+            android:id="@+id/commentbutton"
+            android:contentDescription="@string/commentbutton"
+            android:layout_width="36dp"
+            android:layout_height="32dp">
+        </ImageButton>
+        <ImageButton
+            android:id="@+id/undoButton"
+            android:contentDescription="@string/buttonDesc_back"
+            android:layout_width="36dp"
+            android:layout_height="32dp">
+        </ImageButton>
+        <ImageButton
+            android:id="@+id/redoButton"
+            android:contentDescription="@string/buttonDesc_forward"
+            android:layout_width="36dp"
+            android:layout_height="32dp">
+        </ImageButton>
+
+    </LinearLayout>
+    <LinearLayout
+        android:orientation="horizontal"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:paddingTop="1dp">
+        <TextView
+            android:id="@+id/status"
+            android:layout_width="wrap_content" 
+            android:layout_height="wrap_content" 
+            android:layout_weight="1"
+            android:includeFontPadding="true"
+            android:typeface="monospace"
+            android:textSize="15sp"/>
+<!--             <EditText
+                android:id="@+id/EditText01"
+                android:layout_width="fill_parent"
+                android:layout_height="wrap_content"
+                android:text="ChessMaze" >
+            </EditText>
+
+            <Button
+                android:id="@+id/myButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:onClick="onClick"
+                android:text="Send" /> -->
+
+    </LinearLayout>
+    <RelativeLayout
+        android:orientation="vertical"
+        android:layout_width="fill_parent"
+        android:layout_height="fill_parent">
+
+
+        <view
+            class="edu.mit.viral.shen.MyScrollView"
+            android:id="@+id/scrollViewBot"
+            android:layout_alignParentBottom="true"
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content">
+
+            <TextView
+                android:id="@+id/thinking"
+                android:layout_width="fill_parent"
+                android:layout_height="wrap_content"
+                android:includeFontPadding="true"
+                android:textSize="10dip"
+                android:typeface="monospace" />
+
+
+        </view>
+        <ScrollView
+            android:id="@+id/scrollView"
+            android:layout_above="@+id/scrollViewBot"
+            android:layout_width="fill_parent"
+            android:layout_height="fill_parent">
+            <TextView
+                android:id="@+id/moveList"
+                android:layout_width="fill_parent" 
+                android:layout_height="wrap_content" 
+                android:includeFontPadding="true"
+                android:typeface="monospace"
+                android:textSize="10dip"/>
+        </ScrollView>
+
+
+
+    </RelativeLayout>
+</LinearLayout>

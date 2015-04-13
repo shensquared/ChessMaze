@@ -1,2 +1,0 @@
-# ChessMaze
-Android ChessMaze
