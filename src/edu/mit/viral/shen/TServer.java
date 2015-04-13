@@ -50,7 +50,7 @@ public class TServer extends Service {
 		String msg=intent.getStringExtra("msg");
 		if(msg.length()>0)
 		{
-			sendMessageToServer(msg);
+			sendMessageToServerOld(msg);
 		}
 		System.out.println("message is comming:"+msg);
 		System.out.println("---onStart---");
@@ -123,7 +123,7 @@ try
 
 	private final IBinder mBinder=new LocalBinder();
 
-	private void sendMessageToServer(final String msg2){
+	private void sendMessageToServerOld(final String msg2){
 
 					new Thread(new Runnable() { 
 						@Override

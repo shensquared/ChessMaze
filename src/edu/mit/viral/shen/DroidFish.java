@@ -184,7 +184,7 @@ public class DroidFish extends Activity implements GUIInterface {
 
     private WebSocketClient client;
     private Utils utils;
-    private String name = null;
+    private String name = Integer.toString(Const.sessionID);
 
     private ChessBoardPlay cb;
     private DroidChessController ctrl = null;
@@ -529,11 +529,11 @@ public class DroidFish extends Activity implements GUIInterface {
         // sendDataone(startPosition, 1);
 
         client = new WebSocketClient(URI.create(Const.URL_WEBSOCKET
-            + URLEncoder.encode("hello")), new WebSocketClient.Listener() {
+            + URLEncoder.encode(name)), new WebSocketClient.Listener() {
             @Override
             public void onConnect() {
 
-                }
+            }
 
             /**
              * On receiving the message from web socket server
@@ -607,8 +607,8 @@ public class DroidFish extends Activity implements GUIInterface {
                 // number of people online
                 String onlineCount = jObj.getString("onlineCount");
 
-//                showToast(name + message + ". Currently " + onlineCount
-//                        + " people online!");
+               // showToast(name + message + ". Currently " + onlineCount
+                       // + " people online!");
 
             } else if (flag.equalsIgnoreCase(TAG_MESSAGE)) {
                 // if the flag is 'message', new message received
@@ -656,6 +656,24 @@ public class DroidFish extends Activity implements GUIInterface {
             }
         });
     }
+
+
+
+    private void sendJSON(final String longfen) {
+         new Thread(new Runnable() { 
+             @Override
+             public void run() {
+                     try{
+                        // String sentout=utils.getSendMessageJSON(longfen);
+                        // System.out.println("this is the sentout"+sentout);
+                        sendMessageToServer(longfen);
+                     } 
+                     catch (Exception e) {
+                     e.printStackTrace();
+                     }
+                 }
+             }).start();
+     }
 
 
     /**
@@ -965,19 +983,16 @@ public class DroidFish extends Activity implements GUIInterface {
 
 
 
-     private void sendDataone(final String longfen, final int sq) {
+    private void sendDataone(final String longfen, final int sq) {
          new Thread(new Runnable() { 
              @Override
              public void run() {
                   Socket socket=null;
                      try{
-
-
-                          socket = new Socket(Const.IP_ADD,8888);
-                          String[] words = longfen.split(" ");
-                          String fen=words[0];
-
-                          HttpClient httpClient = new DefaultHttpClient();
+                        socket = new Socket(Const.IP_ADD,8888);
+                        String[] words = longfen.split(" ");
+                        String fen=words[0];
+                        HttpClient httpClient = new DefaultHttpClient();
                           HttpGet httpGet = new HttpGet();
                           URI uri = new URI("http://"+ 
                               Const.IP_ADD +":8888/chatsocket"+
@@ -998,19 +1013,9 @@ public class DroidFish extends Activity implements GUIInterface {
          }).start();
      }
 
-//    private void sendDataone(final String longfen, final int sq) {
-//        new Thread(new Runnable() { 
-//            @Override
-//            public void run() {
-//                Socket socket=null;
-//                    try{
-//                        socket= new Socket(192.1);
-//                    } catch (IOException e) {
-//                        e.printStackTrace();
-//                    }
-//                }
-//            }).start();
-//    }
+
+
+
 
     private String convertStreamToString(InputStream is) {
         String line = "";
@@ -1196,11 +1201,9 @@ public class DroidFish extends Activity implements GUIInterface {
                     if (m != null){
                        ctrl.makeHumanMove(m); 
                        String longfen = TextIO.toFEN(cb.pos);
-                       sendMessageToServer(longfen);
+                       sendJSON(longfen);
                        // String fen1=longfen.replaceAll("D","1");]
-
-// commented out 04/12/15
-
+                       // commented out 04/12/15
                        // sendDataone(longfen, 1); 
                     }
 
