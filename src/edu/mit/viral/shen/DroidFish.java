@@ -184,7 +184,7 @@ public class DroidFish extends Activity implements GUIInterface {
 
     private WebSocketClient client;
     private Utils utils;
-    private String name = Integer.toString(Const.sessionID);
+    private String name = "hello";
 
     private ChessBoardPlay cb;
     private DroidChessController ctrl = null;
@@ -264,7 +264,422 @@ public class DroidFish extends Activity implements GUIInterface {
     private String destination = null;
     private Position pos;
 
-    /** Defines all configurable button actions. */
+    
+
+
+    /** Called when the activity is first created. */
+    @Override
+    public void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        game_number = getIntent().getExtras().getInt("game_id", 0);
+
+       // sendGame();
+        Pair<String,String> pair = getPgnOrFenIntent();
+        String intentPgnOrFen = pair.first;
+        String intentFilename = pair.second;
+
+        createDirectories();
+
+        PreferenceManager.setDefaultValues(this, R.xml.preferences, false);
+        settings = PreferenceManager.getDefaultSharedPreferences(this);
+        settings.registerOnSharedPreferenceChangeListener(new OnSharedPreferenceChangeListener() {
+            @Override
+            public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
+                handlePrefsChange();
+            }
+        });
+
+        PowerManager pm = (PowerManager)getSystemService(Context.POWER_SERVICE);
+        setWakeLock(false);
+        wakeLock = pm.newWakeLock(PowerManager.SCREEN_BRIGHT_WAKE_LOCK, "droidfish");
+        wakeLock.setReferenceCounted(false);
+
+        custom1ButtonActions = new ButtonActions("custom1", CUSTOM1_BUTTON_DIALOG,
+                                                 R.string.select_action);
+        custom2ButtonActions = new ButtonActions("custom2", CUSTOM2_BUTTON_DIALOG,
+                                                 R.string.select_action);
+        custom3ButtonActions = new ButtonActions("custom3", CUSTOM3_BUTTON_DIALOG,
+                                                 R.string.select_action);
+
+        figNotation = Typeface.createFromAsset(getAssets(), "fonts/DroidFishChessNotationDark.otf");
+        setPieceNames(PGNOptions.PT_LOCAL);
+        requestWindowFeature(Window.FEATURE_NO_TITLE);
+        initUI();
+
+        gameTextListener = new PgnScreenText(pgnOptions);
+        if (ctrl != null)
+            ctrl.shutdownEngine();
+        ctrl = new DroidChessController(this, gameTextListener, pgnOptions);
+        egtbForceReload = true;
+        readPrefs();
+        TimeControlData tcData = new TimeControlData();
+        mDatabase = new SudokuDatabase(getApplicationContext());
+        game_id = Long.valueOf(game_number);
+        ctrl = mDatabase.getSudoku(ctrl, game_id);
+        startPosition = ctrl.getData();
+
+        tcData.setTimeControl(timeControl, movesPerSession, timeIncrement);
+        int version = 1;
+        version = settings.getInt("gameStateVersion", version);
+        // System.out.println("this is the version" + version);
+        ctrl.newGame(gameMode, tcData);
+
+
+        if (game_number >= 37 && (startPosition.equals("8/8/8/8/8/8/8/8 w - - 0 1") | startPosition.equals("8/8/8/8/8/8/8/8 w KQkq - 0 1") )){
+            // System.out.println("greater than 37");
+            startEditBoard("8/8/8/8/8/8/8/8 w KQkq - 0 1");
+        }
+
+        if (ctrl.getState() == DroidChessController.GAME_STATE_NOT_STARTED) {
+
+            ctrl.start();
+            System.out.println("GAME_STATE_NOT_STARTED");
+        }
+        else if (ctrl.getState() == DroidChessController.GAME_STATE_PLAYING) {
+
+            System.out.println("GAME_STATE_PLAYING");
+            String dataStr = ctrl.getNote();
+            // System.out.println(ctrl.getNote());
+
+            byte[] data = strToByteArr(dataStr);
+            // ctrl.newGame(gameMode, tcData, "8/8/8/8/8/8/8/8 w KQkq - 0 1");
+
+            ctrl.fromByteArray(data, 3);
+        }
+
+        ctrl.setGuiPaused(true);
+        ctrl.setGuiPaused(false);
+        ctrl.startGame();
+
+        if (intentPgnOrFen != null) {
+            try {
+                ctrl.setFENOrPGN(intentPgnOrFen);
+                setBoardFlip(true);
+            } catch (ChessParseError e) {
+                // If FEN corresponds to illegal chess position, go into edit board mode.
+                try {
+                    TextIO.readFEN(intentPgnOrFen);
+                } catch (ChessParseError e2) {
+                    if (e2.pos != null)
+                        startEditBoard(intentPgnOrFen);
+                }
+            }
+        } else if (intentFilename != null) {
+            if (intentFilename.toLowerCase(Locale.US).endsWith(".fen") ||
+                intentFilename.toLowerCase(Locale.US).endsWith(".epd"))
+                loadFENFromFile(intentFilename);
+            else
+                loadPGNFromFile(intentFilename);
+        }
+        // commented out 04/12/15
+        // sendDataone(startPosition, 1);
+        utils = new Utils(getApplicationContext());
+        client = new WebSocketClient(URI.create(Const.URL_WEBSOCKET
+            + URLEncoder.encode(name)), new WebSocketClient.Listener() {
+            @Override
+            public void onConnect() {
+
+            }
+
+            /**
+             * On receiving the message from web socket server
+             * */
+            @Override
+            public void onMessage(String message) {
+                Log.d(TAG, String.format("Got string message! %s", message));
+                parseMessage(message);
+            }
+
+            @Override
+            public void onMessage(byte[] data) {
+                Log.d(TAG, String.format("Got binary message! %s",
+                        bytesToHex(data)));
+                parseMessage(bytesToHex(data));
+                // Message will be in JSON format
+            }
+
+            /**
+             * Called when the connection is terminated
+             * */
+            @Override
+            public void onDisconnect(int code, String reason) {
+
+                String message = String.format(Locale.US,
+                        "Disconnected! Code: %d Reason: %s", code, reason);
+//                showToast(message);
+
+                // clear the session id from shared preferences
+                utils.storeSessionId(null);
+            }
+
+            @Override
+            public void onError(Exception error) {
+                Log.e(TAG, "Error! : " + error);
+
+            }
+        }, null);
+        client.connect();
+    }
+
+
+
+    private void sendMessageToServer(String message) {
+        if (client != null && client.isConnected()) {
+            client.send(message);
+        }
+    }
+
+    /* the sentout messgae, while is a string type, was converted before the function is actually 
+called, and it's in the JSON format*/
+
+    private void sendJSON(final String sentout) {
+         new Thread(new Runnable() { 
+             @Override
+             public void run() {
+                     try{
+                        sendMessageToServer(sentout);
+                     } 
+                     catch (Exception e) {
+                     e.printStackTrace();
+                     }
+                 }
+             }).start();
+    }
+
+    private void parseMessage(final String msg) {
+
+        try {
+            JSONObject jObj = new JSONObject(msg);
+
+            // JSON node 'flag'
+            String flag = jObj.getString("flag");
+
+            // if flag is 'self', this JSON contains session id
+            if (flag.equalsIgnoreCase(TAG_SELF)) {
+
+                String sessionId = jObj.getString("sessionId");
+
+                // Save the session id in shared preferences
+                utils.storeSessionId(sessionId);
+
+                Log.e(TAG, "Your session id: " + utils.getSessionId());
+
+            } else if (flag.equalsIgnoreCase(TAG_NEW)) {
+                // If the flag is 'new', new person joined the room
+                String name = jObj.getString("name");
+                String message = jObj.getString("message");
+
+                // number of people online
+                String onlineCount = jObj.getString("onlineCount");
+
+               // showToast(name + message + ". Currently " + onlineCount
+                       // + " people online!");
+
+            } else if (flag.equalsIgnoreCase(TAG_MESSAGE)) {
+                // if the flag is 'message', new message received
+                String fromName = name;
+                String message = jObj.getString("message");
+                String sessionId = jObj.getString("sessionId");
+                boolean isSelf = true;
+
+                // Checking if the message was sent by you
+                if (!sessionId.equals(utils.getSessionId())) {
+                    fromName = jObj.getString("name");
+                    isSelf = false;
+                }
+
+                Message m = new Message(fromName, message, isSelf);
+                appendMessage(m);
+
+            } else if (flag.equalsIgnoreCase(TAG_EXIT)) {
+                // If the flag is 'exit', somebody left the conversation
+                String name = jObj.getString("name");
+                String message = jObj.getString("message");
+
+            }
+
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+
+    }
+
+
+    /**
+     * Appending message to list view
+     * */
+    private void appendMessage(final Message m) {
+        runOnUiThread(new Runnable() {
+
+            @Override
+            public void run() {
+                // Playing device's notification
+                playBeep();
+            }
+        });
+    }
+
+    /**
+     * Plays device's default notification sound
+     * */
+    public void playBeep() {
+
+        try {
+            Uri notification = RingtoneManager
+                    .getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
+            Ringtone r = RingtoneManager.getRingtone(getApplicationContext(),
+                    notification);
+            r.play();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+
+
+
+    final protected static char[] hexArray = "0123456789ABCDEF".toCharArray();
+    public static String bytesToHex(byte[] bytes) {
+        char[] hexChars = new char[bytes.length * 2];
+        for (int j = 0; j < bytes.length; j++) {
+            int v = bytes[j] & 0xFF;
+            hexChars[j * 2] = hexArray[v >>> 4];
+            hexChars[j * 2 + 1] = hexArray[v & 0x0F];
+        }
+        return new String(hexChars);
+    }
+
+
+
+    private BroadcastReceiver receiver = new BroadcastReceiver() {
+
+      @Override
+      public void onReceive(Context context, Intent intent) {
+        Bundle bundle = intent.getExtras();
+        if (bundle != null) {
+          String string = bundle.getString("receive");
+          if (isInteger(string)){
+          // System.out.println("got it" + string);
+            cb.heat(Integer.parseInt(string));
+          }
+
+          // thinking = (TextView)findViewById(R.id.thinking);
+          // thinking.setText(string, TextView.BufferType.SPANNABLE);
+          else{
+             String show = moveList.getText() + System.getProperty("line.separator") + string;
+           moveList.setText(show, TextView.BufferType.SPANNABLE);
+            Layout layout = moveList.getLayout();
+            if (layout != null) {
+                int currPos = gameTextListener.getCurrPos();
+                int line = layout.getLineForOffset(currPos);
+                int y = (int) ((line - 1.5) * moveList.getLineHeight());
+                moveListScroll.scrollTo(0, y);
+            } 
+          }
+
+           // cb.setHinted(true);
+          // show the dialogue that a challenge is sent out 
+          // showDialog(RECEIVE_CHA);
+          // Toast.makeText(DroidFish.this,"Teammates"
+              // Toast.LENGTH_LONG).show();
+        }
+      }
+    };
+
+    public static boolean isInteger(String str) {
+        if (str == null) {
+            return false;
+        }
+        int length = str.length();
+        if (length == 0) {
+            return false;
+        }
+        int i = 0;
+        if (str.charAt(0) == '-') {
+            if (length == 1) {
+                return false;
+            }
+            i = 1;
+        }
+        for (; i < length; i++) {
+            char c = str.charAt(i);
+            if (c <= '/' || c >= ':') {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    @Override
+    protected void onSaveInstanceState(Bundle outState) {
+        System.out.println("on onSaveInstanceState");
+        super.onSaveInstanceState(outState);
+        if (ctrl.getState() == DroidChessController.GAME_STATE_PLAYING) {
+            ctrl.pause();
+        }
+        ctrl.saveState(outState);
+    }
+
+    @Override
+    protected void onResume() {
+        System.out.println("on resume");
+
+        lastVisibleMillis = 0;
+        if (ctrl != null){
+          ctrl.setGuiPaused(false);
+          if (ctrl.getState() == DroidChessController.GAME_STATE_PLAYING | ctrl.getState() == DroidChessController.EDIT_STATE_COMPLETED) {
+            ctrl.resume();
+        }
+        }
+        
+        notificationActive = true;
+        updateNotification();
+        setWakeLock(useWakeLock);
+        registerReceiver(receiver, new IntentFilter(UServer.NOTIFICATION));
+        super.onResume();
+    }
+
+    @Override
+    protected void onPause() {
+        if (ctrl != null) {
+            System.out.println("on pause");
+            ctrl.setGuiPaused(true);
+            byte[] data = ctrl.toByteArray();
+            Editor editor = settings.edit();
+            String dataStr = byteArrToString(data);
+            mDatabase.updateSudoku(ctrl);
+            // System.out.println("this is the data" + data);
+            // System.out.println("this is the datastring" + dataStr);
+            editor.putString("gameState", dataStr);
+            editor.putInt("gameStateVersion", 3);
+            // editor.putInt("game_id", game_id);
+            editor.commit();
+        }
+        lastVisibleMillis = System.currentTimeMillis();
+        updateNotification();
+        setWakeLock(false);
+        unregisterReceiver(receiver);
+        super.onPause();
+    }
+
+
+    @Override
+    protected void onDestroy() {
+        System.out.println("on onDestroy");
+        if (ctrl != null)
+            ctrl.shutdownEngine();
+        setNotification(false);
+        super.onDestroy();
+        if(client != null & client.isConnected()){
+            client.disconnect();
+        }
+        mDatabase.close();
+    }
+
+
+
+
+        /** Defines all configurable button actions. */
     private ActionFactory actionFactory = new ActionFactory() {
         private HashMap<String, UIAction> actions;
 
@@ -413,426 +828,6 @@ public class DroidFish extends Activity implements GUIInterface {
     };
 
 
-
-    /** Called when the activity is first created. */
-    @Override
-    public void onCreate(Bundle savedInstanceState) {
-        // System.out.println("onCreate");
-
-        super.onCreate(savedInstanceState);
-        game_number = getIntent().getExtras().getInt("game_id", 0);
-
-
-
-       // sendGame();
-        Pair<String,String> pair = getPgnOrFenIntent();
-        String intentPgnOrFen = pair.first;
-        String intentFilename = pair.second;
-
-        createDirectories();
-
-        PreferenceManager.setDefaultValues(this, R.xml.preferences, false);
-        settings = PreferenceManager.getDefaultSharedPreferences(this);
-        settings.registerOnSharedPreferenceChangeListener(new OnSharedPreferenceChangeListener() {
-            @Override
-            public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
-                handlePrefsChange();
-            }
-        });
-
-        PowerManager pm = (PowerManager)getSystemService(Context.POWER_SERVICE);
-        setWakeLock(false);
-        wakeLock = pm.newWakeLock(PowerManager.SCREEN_BRIGHT_WAKE_LOCK, "droidfish");
-        wakeLock.setReferenceCounted(false);
-
-        custom1ButtonActions = new ButtonActions("custom1", CUSTOM1_BUTTON_DIALOG,
-                                                 R.string.select_action);
-        custom2ButtonActions = new ButtonActions("custom2", CUSTOM2_BUTTON_DIALOG,
-                                                 R.string.select_action);
-        custom3ButtonActions = new ButtonActions("custom3", CUSTOM3_BUTTON_DIALOG,
-                                                 R.string.select_action);
-
-        figNotation = Typeface.createFromAsset(getAssets(), "fonts/DroidFishChessNotationDark.otf");
-        setPieceNames(PGNOptions.PT_LOCAL);
-        requestWindowFeature(Window.FEATURE_NO_TITLE);
-        initUI();
-
-        gameTextListener = new PgnScreenText(pgnOptions);
-        if (ctrl != null)
-            ctrl.shutdownEngine();
-        ctrl = new DroidChessController(this, gameTextListener, pgnOptions);
-        egtbForceReload = true;
-        readPrefs();
-        TimeControlData tcData = new TimeControlData();
-        mDatabase = new SudokuDatabase(getApplicationContext());
-        game_id = Long.valueOf(game_number);
-        ctrl = mDatabase.getSudoku(ctrl, game_id);
-        startPosition = ctrl.getData();
-
-        tcData.setTimeControl(timeControl, movesPerSession, timeIncrement);
-        int version = 1;
-        version = settings.getInt("gameStateVersion", version);
-        // System.out.println("this is the version" + version);
-        ctrl.newGame(gameMode, tcData);
-
-
-        if (game_number >= 37 && (startPosition.equals("8/8/8/8/8/8/8/8 w - - 0 1") | startPosition.equals("8/8/8/8/8/8/8/8 w KQkq - 0 1") )){
-            // System.out.println("greater than 37");
-            startEditBoard("8/8/8/8/8/8/8/8 w KQkq - 0 1");
-        }
-
-        if (ctrl.getState() == DroidChessController.GAME_STATE_NOT_STARTED) {
-
-            ctrl.start();
-            System.out.println("GAME_STATE_NOT_STARTED");
-        }
-        else if (ctrl.getState() == DroidChessController.GAME_STATE_PLAYING) {
-
-            System.out.println("GAME_STATE_PLAYING");
-            String dataStr = ctrl.getNote();
-            // System.out.println(ctrl.getNote());
-
-            byte[] data = strToByteArr(dataStr);
-            // ctrl.newGame(gameMode, tcData, "8/8/8/8/8/8/8/8 w KQkq - 0 1");
-
-            ctrl.fromByteArray(data, 3);
-        }
-
-        ctrl.setGuiPaused(true);
-        ctrl.setGuiPaused(false);
-        ctrl.startGame();
-
-
-
-
-        if (intentPgnOrFen != null) {
-            try {
-                ctrl.setFENOrPGN(intentPgnOrFen);
-                setBoardFlip(true);
-            } catch (ChessParseError e) {
-                // If FEN corresponds to illegal chess position, go into edit board mode.
-                try {
-                    TextIO.readFEN(intentPgnOrFen);
-                } catch (ChessParseError e2) {
-                    if (e2.pos != null)
-                        startEditBoard(intentPgnOrFen);
-                }
-            }
-        } else if (intentFilename != null) {
-            if (intentFilename.toLowerCase(Locale.US).endsWith(".fen") ||
-                intentFilename.toLowerCase(Locale.US).endsWith(".epd"))
-                loadFENFromFile(intentFilename);
-            else
-                loadPGNFromFile(intentFilename);
-        }
-        // commented out 04/12/15
-        // sendDataone(startPosition, 1);
-
-        client = new WebSocketClient(URI.create(Const.URL_WEBSOCKET
-            + URLEncoder.encode(name)), new WebSocketClient.Listener() {
-            @Override
-            public void onConnect() {
-
-            }
-
-            /**
-             * On receiving the message from web socket server
-             * */
-            @Override
-            public void onMessage(String message) {
-                Log.d(TAG, String.format("Got string message! %s", message));
-                parseMessage(message);
-
-            }
-
-            @Override
-            public void onMessage(byte[] data) {
-
-                parseMessage(bytesToHex(data));
-
-                // Message will be in JSON format
-            }
-
-            /**
-             * Called when the connection is terminated
-             * */
-            @Override
-            public void onDisconnect(int code, String reason) {
-
-                String message = String.format(Locale.US,
-                        "Disconnected! Code: %d Reason: %s", code, reason);
-//                showToast(message);
-
-                // clear the session id from shared preferences
-                utils.storeSessionId(null);
-            }
-
-            @Override
-            public void onError(Exception error) {
-                Log.e(TAG, "Error! : " + error);
-
-            }
-        }, null);
-        client.connect();
-    }
-
-    private void sendMessageToServer(String message) {
-        if (client != null && client.isConnected()) {
-            client.send(message);
-        }
-    }
-    private void parseMessage(final String msg) {
-
-        try {
-            JSONObject jObj = new JSONObject(msg);
-
-            // JSON node 'flag'
-            String flag = jObj.getString("flag");
-
-            // if flag is 'self', this JSON contains session id
-            if (flag.equalsIgnoreCase(TAG_SELF)) {
-
-                String sessionId = jObj.getString("sessionId");
-
-                // Save the session id in shared preferences
-                utils.storeSessionId(sessionId);
-
-                Log.e(TAG, "Your session id: " + utils.getSessionId());
-
-            } else if (flag.equalsIgnoreCase(TAG_NEW)) {
-                // If the flag is 'new', new person joined the room
-                String name = jObj.getString("name");
-                String message = jObj.getString("message");
-
-                // number of people online
-                String onlineCount = jObj.getString("onlineCount");
-
-               // showToast(name + message + ". Currently " + onlineCount
-                       // + " people online!");
-
-            } else if (flag.equalsIgnoreCase(TAG_MESSAGE)) {
-                // if the flag is 'message', new message received
-                String fromName = name;
-                String message = jObj.getString("message");
-                String sessionId = jObj.getString("sessionId");
-                boolean isSelf = true;
-
-                // Checking if the message was sent by you
-                if (!sessionId.equals(utils.getSessionId())) {
-                    fromName = jObj.getString("name");
-                    isSelf = false;
-                }
-
-                Message m = new Message(fromName, message, isSelf);
-
-
-                // Appending the message to chat list
-                appendMessage(m);
-
-            } else if (flag.equalsIgnoreCase(TAG_EXIT)) {
-                // If the flag is 'exit', somebody left the conversation
-                String name = jObj.getString("name");
-                String message = jObj.getString("message");
-
-            }
-
-        } catch (JSONException e) {
-            e.printStackTrace();
-        }
-
-    }
-
-
-    /**
-     * Appending message to list view
-     * */
-    private void appendMessage(final Message m) {
-        runOnUiThread(new Runnable() {
-
-            @Override
-            public void run() {
-                // Playing device's notification
-                playBeep();
-            }
-        });
-    }
-
-
-
-    private void sendJSON(final String longfen) {
-         new Thread(new Runnable() { 
-             @Override
-             public void run() {
-                     try{
-                        // String sentout=utils.getSendMessageJSON(longfen);
-                        // System.out.println("this is the sentout"+sentout);
-                        sendMessageToServer(longfen);
-                     } 
-                     catch (Exception e) {
-                     e.printStackTrace();
-                     }
-                 }
-             }).start();
-     }
-
-
-    /**
-     * Plays device's default notification sound
-     * */
-    public void playBeep() {
-
-        try {
-            Uri notification = RingtoneManager
-                    .getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
-            Ringtone r = RingtoneManager.getRingtone(getApplicationContext(),
-                    notification);
-            r.play();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
-    final protected static char[] hexArray = "0123456789ABCDEF".toCharArray();
-    public static String bytesToHex(byte[] bytes) {
-        char[] hexChars = new char[bytes.length * 2];
-        for (int j = 0; j < bytes.length; j++) {
-            int v = bytes[j] & 0xFF;
-            hexChars[j * 2] = hexArray[v >>> 4];
-            hexChars[j * 2 + 1] = hexArray[v & 0x0F];
-        }
-        return new String(hexChars);
-    }
-
-
-
-    private BroadcastReceiver receiver = new BroadcastReceiver() {
-
-      @Override
-      public void onReceive(Context context, Intent intent) {
-        Bundle bundle = intent.getExtras();
-        if (bundle != null) {
-          String string = bundle.getString("receive");
-          if (isInteger(string)){
-          // System.out.println("got it" + string);
-            cb.heat(Integer.parseInt(string));
-          }
-
-          // thinking = (TextView)findViewById(R.id.thinking);
-          // thinking.setText(string, TextView.BufferType.SPANNABLE);
-          else{
-             String show = moveList.getText() + System.getProperty("line.separator") + string;
-           moveList.setText(show, TextView.BufferType.SPANNABLE);
-            Layout layout = moveList.getLayout();
-            if (layout != null) {
-                int currPos = gameTextListener.getCurrPos();
-                int line = layout.getLineForOffset(currPos);
-                int y = (int) ((line - 1.5) * moveList.getLineHeight());
-                moveListScroll.scrollTo(0, y);
-            } 
-          }
-
-           // cb.setHinted(true);
-          // show the dialogue that a challenge is sent out 
-          // showDialog(RECEIVE_CHA);
-          // Toast.makeText(DroidFish.this,"Teammates"
-              // Toast.LENGTH_LONG).show();
-        }
-      }
-    };
-
-    public static boolean isInteger(String str) {
-        if (str == null) {
-            return false;
-        }
-        int length = str.length();
-        if (length == 0) {
-            return false;
-        }
-        int i = 0;
-        if (str.charAt(0) == '-') {
-            if (length == 1) {
-                return false;
-            }
-            i = 1;
-        }
-        for (; i < length; i++) {
-            char c = str.charAt(i);
-            if (c <= '/' || c >= ':') {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    @Override
-    protected void onSaveInstanceState(Bundle outState) {
-        System.out.println("on onSaveInstanceState");
-        super.onSaveInstanceState(outState);
-        if (ctrl.getState() == DroidChessController.GAME_STATE_PLAYING) {
-            ctrl.pause();
-        }
-        ctrl.saveState(outState);
-    }
-
-    @Override
-    protected void onResume() {
-        System.out.println("on resume");
-
-        lastVisibleMillis = 0;
-        if (ctrl != null){
-          ctrl.setGuiPaused(false);
-          if (ctrl.getState() == DroidChessController.GAME_STATE_PLAYING | ctrl.getState() == DroidChessController.EDIT_STATE_COMPLETED) {
-            ctrl.resume();
-        }
-        }
-        
-        notificationActive = true;
-        updateNotification();
-        setWakeLock(useWakeLock);
-        registerReceiver(receiver, new IntentFilter(UServer.NOTIFICATION));
-        super.onResume();
-    }
-
-    @Override
-    protected void onPause() {
-        if (ctrl != null) {
-            System.out.println("on pause");
-            ctrl.setGuiPaused(true);
-            byte[] data = ctrl.toByteArray();
-            Editor editor = settings.edit();
-            String dataStr = byteArrToString(data);
-            mDatabase.updateSudoku(ctrl);
-            // System.out.println("this is the data" + data);
-            // System.out.println("this is the datastring" + dataStr);
-            editor.putString("gameState", dataStr);
-            editor.putInt("gameStateVersion", 3);
-            // editor.putInt("game_id", game_id);
-            editor.commit();
-        }
-        lastVisibleMillis = System.currentTimeMillis();
-        updateNotification();
-        setWakeLock(false);
-        unregisterReceiver(receiver);
-        super.onPause();
-    }
-
-
-    @Override
-    protected void onDestroy() {
-        System.out.println("on onDestroy");
-
-        if (ctrl != null)
-            ctrl.shutdownEngine();
-        setNotification(false);
-        super.onDestroy();
-
-        
-        if(client != null & client.isConnected()){
-            client.disconnect();
-        }
-
-        mDatabase.close();
-    }
     // Unicode code points for chess pieces
     private static final String figurinePieceNames = Piece.NOTATION_PAWN   + " " +
                                                      Piece.NOTATION_KNIGHT + " " +
@@ -1201,7 +1196,8 @@ public class DroidFish extends Activity implements GUIInterface {
                     if (m != null){
                        ctrl.makeHumanMove(m); 
                        String longfen = TextIO.toFEN(cb.pos);
-                       sendJSON(longfen);
+                       String sentout=utils.getSendMessageJSON(longfen);
+                       sendJSON(sentout);
                        // String fen1=longfen.replaceAll("D","1");]
                        // commented out 04/12/15
                        // sendDataone(longfen, 1); 

@@ -93,7 +93,7 @@ public class EditBoard extends Activity {
     private TextView whiteFigText;
     private TextView blackFigText;
     private Typeface figNotation;
-    private int sessionID;
+
 
     
     private SocketChannel client=null;
@@ -127,7 +127,6 @@ public class EditBoard extends Activity {
             cb.setPosition(pos);
         checkValidAndUpdateMaterialDiff();
         Random r = new Random();
-        sessionID=r.nextInt(1000) + 1;
     }
 
 

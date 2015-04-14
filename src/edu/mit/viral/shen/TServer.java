@@ -35,7 +35,7 @@ public class TServer extends Service {
     	super.onCreate();
     	connectToServer();
     	startServerListener();
-    	System.out.println("---onCreate---");
+    	System.out.println("---onCreate--- TServer");
     }
 
 	public void onDestroy()

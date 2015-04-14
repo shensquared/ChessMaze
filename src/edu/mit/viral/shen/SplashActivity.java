@@ -36,7 +36,7 @@ public class SplashActivity extends Activity {
             }
         }, SPLASH_DELAY_MILLIS);
 
-        Intent intent=new Intent(SplashActivity.this,UServer.class);
+        Intent intent=new Intent(SplashActivity.this,MainActivity.class);
         SplashActivity.this.startService(intent);
     }
 

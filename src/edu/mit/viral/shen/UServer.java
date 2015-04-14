@@ -89,7 +89,7 @@ public class UServer extends Service {
     {
     	super.onCreate();
     	onListening();
-    	System.out.println("---onCreate---");
+    	System.out.println("---onCreate--- UServer");
     }
 
     private void publishResults(String recserv) {
